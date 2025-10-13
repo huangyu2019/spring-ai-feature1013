@@ -51,11 +51,24 @@ public class McpServerStreamableHttpWebMvcAutoConfiguration {
 
 		ObjectMapper objectMapper = objectMapperProvider.getIfAvailable(ObjectMapper::new);
 
+		 McpTransportContextExtractor<ServerRequest> contextExtractor = (serverRequest) -> {
+                Map<String, Object> headersMap = new HashMap<>();
+                HttpServletRequest httpServletRequest = serverRequest.servletRequest();
+                Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
+                while (headerNames.hasMoreElements()) {
+                    String headerName = headerNames.nextElement();
+                    String headerVal = httpServletRequest.getHeader(headerName);
+                    headersMap.put(headerName, headerVal);
+                }
+            	return McpTransportContext.create(headersMap);
+        };
+
 		return WebMvcStreamableServerTransportProvider.builder()
 			.jsonMapper(new JacksonMcpJsonMapper(objectMapper))
 			.mcpEndpoint(serverProperties.getMcpEndpoint())
 			.keepAliveInterval(serverProperties.getKeepAliveInterval())
 			.disallowDelete(serverProperties.isDisallowDelete())
+			.contextExtractor(contextExtractor ) // set customize contextExtractor 
 			.build();
 	}
 
