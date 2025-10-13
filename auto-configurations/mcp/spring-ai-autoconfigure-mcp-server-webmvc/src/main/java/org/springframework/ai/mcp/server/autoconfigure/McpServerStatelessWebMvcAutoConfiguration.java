@@ -49,11 +49,23 @@ public class McpServerStatelessWebMvcAutoConfiguration {
 			ObjectProvider<ObjectMapper> objectMapperProvider, McpServerStreamableHttpProperties serverProperties) {
 
 		ObjectMapper objectMapper = objectMapperProvider.getIfAvailable(ObjectMapper::new);
+		McpTransportContextExtractor<ServerRequest> contextExtractor = (serverRequest) -> {
+                Map<String, Object> headersMap = new HashMap<>();
+                HttpServletRequest httpServletRequest = serverRequest.servletRequest();
+            	Enumeration<String> headerNames = httpServletRequest.getHeaderNames();
+                while (headerNames.hasMoreElements()) {
+                    String headerName = headerNames.nextElement();
+                    String headerVal = httpServletRequest.getHeader(headerName);
+                    headersMap.put(headerName, headerVal);
+                }
+            	return McpTransportContext.create(headersMap);
+        };
 
 		return WebMvcStatelessServerTransport.builder()
 			.jsonMapper(new JacksonMcpJsonMapper(objectMapper))
 			.messageEndpoint(serverProperties.getMcpEndpoint())
 			// .disallowDelete(serverProperties.isDisallowDelete())
+			.contextExtractor(contextExtractor ) // set customize contextExtractor 
 			.build();
 	}
 
